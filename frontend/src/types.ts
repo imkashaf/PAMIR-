@@ -32,7 +32,7 @@ export interface TradeCalculations {
   weight_used_kg: number;
   duty_rate_source: 'confirmed' | 'default_fallback';
   exchange_rate_used: number;
-  exchange_rate_status: 'verified' | 'curated' | 'estimated';
+  exchange_rate_status: 'verified' | 'curated' | 'estimated' | 'live_reference' | 'stale_reference';
 }
 
 export interface AiExplanation {
@@ -94,6 +94,15 @@ export interface ProductItem {
   source: string;
   source_date: string;
   data_status: 'verified' | 'curated' | 'incomplete';
+  // Present on newer rows (Apparel / Machinery); absent on the original Electronics rows.
+  sub_category?: string;
+  supplier_price_max?: number | null;
+  supplier_years_on_alibaba?: number | null;
+  rating?: number | null;
+  review_count?: number | null;
+  rating_type?: string | null;
+  product_url?: string | null;
+  notes?: string | null;
 }
 
 export interface MarketingCopyPayload {
@@ -141,18 +150,6 @@ export interface AuditLogEntry {
   new_value: string | number;
   action_type: 'INITIAL_LOAD' | 'PRESET_MACRO_SELECT' | 'MANUAL_OVERRIDE' | 'RECALCULATION' | 'EXPORT_EXECUTED';
   metadata?: Record<string, unknown>;
-}
-
-export interface PresetLotMacro {
-  id: string;
-  label: string;
-  icon: string;
-  product_id: string;
-  product_name: string;
-  capital: number;
-  category: string;
-  quantity: number;
-  tagline: string;
 }
 
 export type ActiveNavTab = 'sourcing' | 'rfqs' | 'tariff' | 'audit' | 'catalog';

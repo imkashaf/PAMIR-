@@ -12,7 +12,8 @@ export interface BackendLandedCostData {
   product_id: string;
   currency_used: 'PKR' | 'CNY';
   exchange_rate: number;
-  exchange_rate_status: 'verified' | 'curated' | 'estimated';
+  exchange_rate_status: 'verified' | 'curated' | 'estimated' | 'live_reference' | 'stale_reference';
+  exchange_rate_as_of?: string;
   product_cost: number;
   shipping_cost: number;
   duty_rate_percent: number;

@@ -110,7 +110,7 @@ def explain_viability(structured_data: dict) -> dict:
     try:
         response = httpx.post(
             url,
-            params={"key": GEMINI_API_KEY},
+            headers={"x-goog-api-key": GEMINI_API_KEY},
             json=payload,
             timeout=GEMINI_TIMEOUT_SECONDS,
         )
@@ -125,6 +125,14 @@ def explain_viability(structured_data: dict) -> dict:
         # Do not expose the API key or full request URL in error messages.
         raise QwenServiceError(
             "error", f"Gemini returned HTTP {e.response.status_code}."
+        ) from e
+
+    except httpx.RequestError as e:
+        # DNS failure, connection refused, network unreachable, etc.
+        # Must be caught so /api/business-analysis degrades gracefully
+        # (qwen_status="unavailable") instead of returning HTTP 500.
+        raise QwenServiceError(
+            "unavailable", f"Could not reach Gemini: {type(e).__name__}."
         ) from e
 
 

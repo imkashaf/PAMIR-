@@ -28,6 +28,8 @@ interface BackendExchangeRates {
   usd_pkr_interbank: { rate: number; data_status: string; source: string; source_date: string };
   usd_pkr_open_market: { rate: number; data_status: string; source: string; source_date: string };
   usd_cny: { rate: number; data_status: string; source: string; source_date: string };
+  // Optional: present on newer backends. Reference rate (open.er-api.com), cached 24h.
+  live_market?: { usd_pkr: number; usd_cny: number; as_of: string | null; status: string; source: string; note?: string } | null;
   note: string;
 }
 
@@ -42,11 +44,14 @@ export const exchangeRateService = {
     try {
       const data = await apiClient.get<BackendExchangeRates>('/exchange-rates', { skipAuth: true });
       if (data && data.usd_pkr_interbank && data.usd_cny) {
+        // Use the live reference rate when the backend provides one, so the
+        // browser-side estimate matches what /api/landed-cost will return.
+        const live = data.live_market && data.live_market.usd_pkr > 0 && data.live_market.usd_cny > 0 ? data.live_market : null;
         return {
           rates: {
-            USD_PKR_INTERBANK: data.usd_pkr_interbank.rate,
+            USD_PKR_INTERBANK: live ? live.usd_pkr : data.usd_pkr_interbank.rate,
             USD_PKR_OPEN_MARKET: data.usd_pkr_open_market.rate,
-            USD_CNY: data.usd_cny.rate,
+            USD_CNY: live ? live.usd_cny : data.usd_cny.rate,
           },
           sources: {
             interbank: data.usd_pkr_interbank.source,
@@ -58,8 +63,8 @@ export const exchangeRateService = {
             open_market: data.usd_pkr_open_market.data_status,
             indicative_cny: data.usd_cny.data_status,
           },
-          timestamp: data.usd_pkr_interbank.source_date,
-          last_updated: data.usd_pkr_interbank.source_date,
+          timestamp: live?.as_of || data.usd_pkr_interbank.source_date,
+          last_updated: live?.as_of ? `${live.as_of} (${live.status === 'stale_reference' ? 'stale' : 'live'} reference)` : data.usd_pkr_interbank.source_date,
           note: data.note,
         };
       }

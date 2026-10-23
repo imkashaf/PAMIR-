@@ -12,6 +12,8 @@ import { PRODUCTS_CATALOG, DUTY_RATES_MAP, CURRENCY_RATES, SHIPPING_METHODS, CUS
 export const DEFAULT_USD_TO_PKR_RATE = 279.30;
 export const DEFAULT_USD_TO_CNY_RATE = 6.72;
 const ASSUMED_WEIGHT_KG = 0.15;
+// Mirrors backend ASSUMED_WEIGHT_KG_BY_CATEGORY (used only when the dataset has no weight).
+const ASSUMED_WEIGHT_KG_BY_CATEGORY: Record<string, number> = { Electronics: 0.15, Apparel: 0.4, Machinery: 1.0 };
 const DEFAULT_DUTY_RATE = 20;
 
 export function getProductById(productId: string): ProductItem {
@@ -38,9 +40,9 @@ export function getCustomsTariffForProduct(product: ProductItem) {
 
 export function computeTradeMetrics(params: TradeParameters, liveRates?: Partial<ExchangeRatesData>): TradePayload {
   const product = getProductById(params.product_id);
-  const supplierPriceUsd = product.supplier_price ?? 1.50;
+  const supplierPriceUsd = product.supplier_price ?? 0; // no price in dataset -> never invent one
   const quantity = Math.max(1, Math.round(params.quantity || 1));
-  const weightPerUnit = (product.weight_kg != null && product.weight_kg > 0) ? product.weight_kg : ASSUMED_WEIGHT_KG;
+  const weightPerUnit = (product.weight_kg != null && product.weight_kg > 0) ? product.weight_kg : (ASSUMED_WEIGHT_KG_BY_CATEGORY[product.category] ?? ASSUMED_WEIGHT_KG);
   const totalWeightKg = Number((weightPerUnit * quantity).toFixed(3));
 
   // Determine active conversion rates from backend live polling or defaults
@@ -72,11 +74,9 @@ export function computeTradeMetrics(params: TradeParameters, liveRates?: Partial
   // 2. Air Freight Shipping Cost (PKR) = (Total Gross Weight in kg × Shipping Rate in USD) × usdToPkrRate
   const shippingCostPkr = Number((shippingCostUsd * usdToPkrRate).toFixed(2));
 
-  // 3. CIF / Customs Valuation Base (PKR) = FOB Product Cost + International Freight
-  const cifValuePkr = Number((productCostPkr + shippingCostPkr).toFixed(2));
-
-  // 4. Customs Duty Cost (PKR) = CIF Valuation Base × (Statutory Duty Rate % / 100)
-  const customsCostPkr = Number((cifValuePkr * (dutyRatePercent / 100)).toFixed(2));
+  // 3/4. Customs Duty Cost (PKR) = FOB Product Cost x duty rate. This mirrors the
+  // backend's /api/landed-cost formula exactly (duty is applied to the product price, not CIF).
+  const customsCostPkr = Number((productCostPkr * (dutyRatePercent / 100)).toFixed(2));
 
   // 5. Total Landed Cost (PKR) = FOB Product Cost + Freight + Customs Duty (no double counting)
   const totalLandedCostPkr = Number((productCostPkr + shippingCostPkr + customsCostPkr).toFixed(2));

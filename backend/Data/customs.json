@@ -55,7 +55,7 @@
   },
   {
     "pct_code": "9405.1190",
-    "description": "LED luminaires and lighting fittings, 'Other' (covers P004 LED strip light only - see separate entry for P027)",
+    "description": "LED luminaires and lighting fittings, 'Other' (covers P004 LED strip light only - see separate entry for emergency lights)",
     "category": "Electronics",
     "duty_rate": 20.0,
     "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 94, page ~ (heading 94.05) - official PDF screenshot provided by user, Aug 2026",
@@ -64,7 +64,7 @@
   },
   {
     "pct_code": "8513.1030",
-    "description": "Portable electric lamps - Rechargeable emergency light (covers P027 rechargeable emergency LED light) - exact description match, more precise than the general 94.05 lighting-fixture heading",
+    "description": "Portable electric lamps - Rechargeable emergency light (rechargeable emergency LED light - not currently in the product catalog) - exact description match, more precise than the general 94.05 lighting-fixture heading",
     "category": "Electronics",
     "duty_rate": 11.0,
     "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 85, page 457, heading 85.13 subheading 8513.1030 'Rechargeable emergency light' - official PDF screenshot provided by user, Aug 2026",
@@ -168,6 +168,141 @@
     "duty_rate": 11.0,
     "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 85, page 457, heading 85.13 subheading 8513.1040 'Torches' - official PDF screenshot provided by user, Aug 2026",
     "source_date": "2026-08-23",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "6109.1000",
+    "description": "T-shirts, singlets and other vests, of cotton, knitted or crocheted (covers A006 Oversized Heavyweight Blank Cotton T-Shirt 230GSM)",
+    "category": "Apparel",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 61, Heading 61.09 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "6109.9090",
+    "description": "T-shirts, singlets and other vests, of other textile materials, knitted or crocheted (covers A006 if non-cotton version)",
+    "category": "Apparel",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 61, Heading 61.09 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "6110.2000 / 6110.3000",
+    "description": "Jerseys, pullovers, cardigans, waistcoats and similar articles, knitted or crocheted - of cotton / of man-made fibres (covers A009 Boxy Fit Zip-Up Hoodie Heavyweight)",
+    "category": "Apparel",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 61, Heading 61.10 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "6105.1000 / 6105.2000",
+    "description": "Men's or boys' shirts, knitted or crocheted - of cotton / of man-made fibres (covers A004 Men's Oversized Short Sleeve Cargo Shirt)",
+    "category": "Apparel",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 61, Heading 61.05 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "6106.1000 / 6106.2000",
+    "description": "Women's or girls' blouses, shirts and shirt-blouses, knitted or crocheted - of cotton / of man-made fibres (covers A001 Women's Long Sleeve Cotton Blouse, A003 Women's Denim Long Sleeve Blouse, A010 Women's Satin/Chiffon Casual Blouse)",
+    "category": "Apparel",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 61, Heading 61.06 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "6104.6200 / 6104.6300",
+    "description": "Women's or girls' trousers, bib and brace overalls, breeches and shorts, knitted or crocheted - of cotton / of synthetic fibres (covers A002 Women's High Waist Cargo Pants, A005 Women's High Waist Cargo Jeans, A007 Women's High Waist Wide Leg / Baggy Jeans)",
+    "category": "Apparel",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 61, Heading 61.04 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "6404.1100",
+    "description": "Sports footwear; tennis shoes, basketball shoes, gym shoes, training shoes and the like (covers A008 Unisex Casual Fashion Sneakers / Low Top Shoes - if classified as sports/training style)",
+    "category": "Apparel",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 64, Heading 64.04 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "6404.1900",
+    "description": "Other footwear with outer soles of rubber or plastics and uppers of textile materials (covers A008 Unisex Casual Fashion Sneakers if not classified under sports footwear)",
+    "category": "Apparel",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 64, Heading 64.04 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "9017.3020",
+    "description": "Callipers and gauges (covers P027 SHAHE Digital Vernier Caliper, P028 TOLSEN Digital Vernier Caliper)",
+    "category": "Machinery",
+    "duty_rate": 3.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 90, Heading 90.17 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "9030.3100",
+    "description": "Multimeters without a recording device (covers P037 ANENG / Generic Digital Multimeter)",
+    "category": "Machinery",
+    "duty_rate": 0.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 90, Heading 90.30 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "8515.1100",
+    "description": "Soldering iron and guns (covers P029 YIHUA Digital Soldering Iron Station)",
+    "category": "Machinery",
+    "duty_rate": 0.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 85, Heading 85.15 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "8467.2100",
+    "description": "Drills of all kinds (covers P039 21V Brushless Cordless Drill / Impact Drill Set, P032 Cordless Pivot Electric Screwdriver)",
+    "category": "Machinery",
+    "duty_rate": 0.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 84, Heading 84.67 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "8467.2900",
+    "description": "Other tools with self-contained electric motor (covers P038 Mini Angle Grinder, P034 EXTOL Rotary Tool Kit, P036 Mini Electric Drill Grinder, P040 Cordless Oscillating Multi-Tool)",
+    "category": "Machinery",
+    "duty_rate": 0.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 84, Heading 84.67 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "8516.7990",
+    "description": "Other electro-thermic appliances (covers P035 2000W Hot/Cold Air Heat Gun)",
+    "category": "Machinery",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 85, Heading 85.16 - official PDF screenshot provided by user, Oct 2026",
+    "source_date": "2026-10-21",
+    "data_status": "verified"
+  },
+  {
+    "pct_code": "8516.7990",
+    "description": "Other electro-thermic appliances / possible alternative for low-temperature 3D drawing pen (covers P031 Low-Temperature 3D Drawing/Printing Pen) - classification should be confirmed with customs agent as it may also fall under 8477",
+    "category": "Machinery",
+    "duty_rate": 20.0,
+    "source": "FBR First Schedule (Pakistan Customs Tariff), Chapter 85, Heading 85.16 - official PDF screenshot provided by user, Oct 2026. Note: 3D pens can sometimes be classified under Chapter 84 (8477) depending on principal function.",
+    "source_date": "2026-10-21",
     "data_status": "verified"
   }
 ]

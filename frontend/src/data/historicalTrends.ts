@@ -35,40 +35,6 @@ export const CATEGORY_HISTORICAL_DATA: Record<string, CategoryVarianceTrends> = 
       { period: '2026-02', month: 'Feb 26', landed_cost: 1300, market_price: 2300, margin_spread: 1000, margin_percentage: 43.5, freight_index: 5.0, duty_factor: 20 },
       { period: '2026-03', month: 'Current', landed_cost: 1280, market_price: 2340, margin_spread: 1060, margin_percentage: 45.3, freight_index: 5.0, duty_factor: 20 },
     ]
-  },
-  Machinery: {
-    category: 'Machinery',
-    base_spread_pct: 44.2,
-    trend_direction: 'stable',
-    volatility_rating: 'Low',
-    summary: 'Industrial components maintain consistent gross markups with steady import clearance schedules and stable FOB pricing in Zhejiang.',
-    historical_data: [
-      { period: '2025-08', month: 'Aug 25', landed_cost: 3850, market_price: 5600, margin_spread: 1750, margin_percentage: 31.3, freight_index: 7.0, duty_factor: 15 },
-      { period: '2025-09', month: 'Sep 25', landed_cost: 3900, market_price: 5800, margin_spread: 1900, margin_percentage: 32.8, freight_index: 6.8, duty_factor: 15 },
-      { period: '2025-10', month: 'Oct 25', landed_cost: 3750, market_price: 5750, margin_spread: 2000, margin_percentage: 34.8, freight_index: 6.2, duty_factor: 15 },
-      { period: '2025-11', month: 'Nov 25', landed_cost: 3700, market_price: 5900, margin_spread: 2200, margin_percentage: 37.3, freight_index: 5.8, duty_factor: 15 },
-      { period: '2025-12', month: 'Dec 25', landed_cost: 3800, market_price: 6100, margin_spread: 2300, margin_percentage: 37.7, freight_index: 6.0, duty_factor: 15 },
-      { period: '2026-01', month: 'Jan 26', landed_cost: 3650, market_price: 6200, margin_spread: 2550, margin_percentage: 41.1, freight_index: 5.3, duty_factor: 15 },
-      { period: '2026-02', month: 'Feb 26', landed_cost: 3600, market_price: 6350, margin_spread: 2750, margin_percentage: 43.3, freight_index: 5.0, duty_factor: 15 },
-      { period: '2026-03', month: 'Current', landed_cost: 3550, market_price: 6400, margin_spread: 2850, margin_percentage: 44.5, freight_index: 5.0, duty_factor: 15 },
-    ]
-  },
-  Apparel: {
-    category: 'Apparel',
-    base_spread_pct: 52.0,
-    trend_direction: 'widening',
-    volatility_rating: 'Moderate',
-    summary: 'Fast fashion and streetwear blanks reflect highest local market multiplier over FOB cost, driven by high domestic e-commerce demand.',
-    historical_data: [
-      { period: '2025-08', month: 'Aug 25', landed_cost: 720, market_price: 1350, margin_spread: 630, margin_percentage: 46.7, freight_index: 5.5, duty_factor: 25 },
-      { period: '2025-09', month: 'Sep 25', landed_cost: 740, market_price: 1400, margin_spread: 660, margin_percentage: 47.1, freight_index: 5.4, duty_factor: 25 },
-      { period: '2025-10', month: 'Oct 25', landed_cost: 710, market_price: 1450, margin_spread: 740, margin_percentage: 51.0, freight_index: 5.0, duty_factor: 25 },
-      { period: '2025-11', month: 'Nov 25', landed_cost: 680, market_price: 1500, margin_spread: 820, margin_percentage: 54.7, freight_index: 4.8, duty_factor: 25 },
-      { period: '2025-12', month: 'Dec 25', landed_cost: 700, market_price: 1600, margin_spread: 900, margin_percentage: 56.3, freight_index: 5.2, duty_factor: 25 },
-      { period: '2026-01', month: 'Jan 26', landed_cost: 670, market_price: 1580, margin_spread: 910, margin_percentage: 57.6, freight_index: 4.9, duty_factor: 25 },
-      { period: '2026-02', month: 'Feb 26', landed_cost: 650, market_price: 1620, margin_spread: 970, margin_percentage: 59.9, freight_index: 4.8, duty_factor: 25 },
-      { period: '2026-03', month: 'Current', landed_cost: 640, market_price: 1650, margin_spread: 1010, margin_percentage: 61.2, freight_index: 4.8, duty_factor: 25 },
-    ]
   }
 };
 

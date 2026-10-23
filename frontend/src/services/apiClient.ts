@@ -36,6 +36,10 @@ export interface RequestOptions extends RequestInit {
   timeoutMs?: number;
 }
 
+// Deployed Pamir AI backend (FastAPI on Vercel). Override with VITE_API_BASE_URL,
+// e.g. http://localhost:8000/api when running the backend locally.
+export const DEFAULT_API_BASE_URL = 'https://pamir-ai-backend.vercel.app/api';
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -47,22 +51,14 @@ class ApiClient {
     // the same as this app's own server.ts (which only serves the frontend
     // bundle and no longer fakes any /api business routes).
     const envBaseUrl = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL;
-    this.baseUrl = (envBaseUrl || 'http://localhost:8000/api').replace(/\/+$/, '');
+    this.baseUrl = (envBaseUrl || DEFAULT_API_BASE_URL).replace(/\/+$/, '');
 
-    // 2. Initialize Auth Token from environment or local storage only.
-    // There is no valid hardcoded fallback token - the backend issues real
-    // per-user JWTs from /api/signup and /api/login (see authService.ts),
-    // and unauthenticated requests are expected to fail with 401 until
-    // ensureAuthenticated() has run.
-    const envToken = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_AUTH_TOKEN;
-    if (envToken) {
-      this.token = envToken;
-    } else {
-      try {
-        this.token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
-      } catch {
-        this.token = null;
-      }
+    // 2. Restore the user's JWT (issued by /api/login or /api/signup) from localStorage.
+    // No token is ever baked into the bundle.
+    try {
+      this.token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    } catch {
+      this.token = null;
     }
   }
 

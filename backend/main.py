@@ -114,25 +114,38 @@ _LIVE = {}
 LIVE_TTL = 24 * 60 * 60
 
 
+_LIVE_RETRY_AFTER = 300  # seconds to wait before retrying after a failed fetch
+_live_last_failure = 0.0
+
+
 def get_live_rates():
+    global _live_last_failure
     now = time.time()
     if _LIVE and now - _LIVE["fetched_at"] < LIVE_TTL:
         _LIVE["stale"] = False
         return _LIVE
+    # After a failure, don't retry on every request (avoids repeated slow calls).
+    if _live_last_failure and now - _live_last_failure < _LIVE_RETRY_AFTER:
+        if _LIVE:
+            _LIVE["stale"] = True
+            return _LIVE
+        return None
     try:
-        r = httpx.get("https://open.er-api.com/v6/latest/USD", timeout=6)
+        r = httpx.get("https://open.er-api.com/v6/latest/USD", timeout=3)
         r.raise_for_status()
         d = r.json()
         _LIVE.update({
-            "usd_pkr": d["rates"]["PKR"],
-            "usd_cny": d["rates"]["CNY"],
+            "usd_pkr": float(d["rates"]["PKR"]),
+            "usd_cny": float(d["rates"]["CNY"]),
             "as_of": d.get("time_last_update_utc"),
             "fetched_at": now,
             "stale": False,
         })
+        _live_last_failure = 0.0
         return _LIVE
     except Exception as e:
         print("LIVE RATE ERROR:", repr(e))
+        _live_last_failure = now
         if _LIVE:
             _LIVE["stale"] = True
             return _LIVE
@@ -166,36 +179,38 @@ def usd_to_cny(usd_amount: float) -> float:
 
 # Product ID -> Duty rate (customs.json descriptions se manually banaya gaya mapping)
 
-# Product ID -> customs.json se duty rates
+# Product ID -> customs entry and duty rate, derived from the "covers PXXX / AXXX"
+# mentions in each customs.json description. Used by /api/landed-cost, /api/launch-kit
+# and /api/import-guidance.
+# If a product is mentioned by more than one entry (e.g. a cotton and a non-cotton
+# variant of the same heading), the FIRST entry listed wins. This matches the
+# frontend's lookup, and later entries are treated as alternates.
 DUTY_RATES = {}
 CUSTOMS_BY_PRODUCT = {}
 
 for entry in CUSTOMS:
-    product_ids = re.findall(
-        r"\b[AP]\d{3}\b",
-        entry.get("description", "")
-    )
-
-    for pid in product_ids:
+    for pid in re.findall(r"\b[AP]\d{3}\b", entry.get("description", "")):
+        if pid in CUSTOMS_BY_PRODUCT:
+            continue
         CUSTOMS_BY_PRODUCT[pid] = entry
-
         if entry.get("duty_rate") is not None:
             DUTY_RATES[pid] = entry["duty_rate"]
 
 DEFAULT_DUTY_RATE = 20
 
+# Fallback weight per unit, used ONLY when the dataset has no weight_kg for a product.
+# These are rough, clearly-labelled estimates (never presented as dataset values);
+# real weights should be added to products.json.
 ASSUMED_WEIGHT_KG = 0.15
+ASSUMED_WEIGHT_KG_BY_CATEGORY = {"Electronics": 0.15, "Apparel": 0.4, "Machinery": 1.0}
 
-# Product ID -> full customs.json entry (pct_code, duty_rate, source, etc.), derived
-# directly from the dataset by parsing the "covers PXXX" mentions in each description.
-# Used by /api/import-guidance to surface real, sourced classification info per product.
-CUSTOMS_BY_PRODUCT = {}
-for _entry in CUSTOMS:
-    for _pid in re.findall(r"P\d{3}", _entry["description"]):
-        CUSTOMS_BY_PRODUCT[_pid] = _entry
 
-# Fallback sirf agar kabhi weight missing ho (ab real weight_kg hai dataset mein)
-ASSUMED_WEIGHT_KG = 0.15
+def unit_weight_for(product):
+    """Returns (unit_weight_kg, is_estimated)."""
+    if product["weight_kg"] is not None:
+        return product["weight_kg"], False
+    return ASSUMED_WEIGHT_KG_BY_CATEGORY.get(product["category"], ASSUMED_WEIGHT_KG), True
+
 
 # No official Alibaba Trade Assurance transaction/handoff API, SDK, or endpoint
 # documentation exists anywhere in this project (confirmed by a full-project
@@ -376,7 +391,7 @@ def get_landed_cost(req: LandedCostRequest, user_email: str = Depends(verify_tok
     air_shipping = next((s for s in SHIPPING if s["shipping_method"].lower() == "air"), SHIPPING[0])
 
     # Real weight dataset se lo, agar kabhi missing ho to fallback use karo
-    unit_weight = product["weight_kg"] if product["weight_kg"] is not None else ASSUMED_WEIGHT_KG
+    unit_weight, weight_is_estimated = unit_weight_for(product)
     total_weight = unit_weight * req.quantity
 
     shipping_cost_usd = air_shipping["estimated_cost"] * total_weight
@@ -406,10 +421,13 @@ def get_landed_cost(req: LandedCostRequest, user_email: str = Depends(verify_tok
     customs_cost_final = round((product["supplier_price"] * req.quantity) * (duty_rate / 100) * conversion_rate, 2)
     total_final = round(product_cost_final + shipping_cost_final + customs_cost_final, 2)
 
-    if product["weight_kg"] is not None:
+    if not weight_is_estimated:
         weight_note = f"Weight sourced from dataset (data_status: {product['data_status']})."
     else:
-        weight_note = "Weight estimated (missing in dataset)."
+        weight_note = (
+            f"Weight estimated at {unit_weight} kg per unit ({product['category']} category default) "
+            "- missing in dataset. Verify the real weight with the supplier; shipping cost depends on it."
+        )
 
     return {
         "success": True,
@@ -990,7 +1008,7 @@ def get_launch_kit(req: LaunchKitRequest, user_email: str = Depends(verify_token
     unit_price_pkr = usd_to_pkr(product["supplier_price"])
     product_cost = unit_price_pkr * req.quantity
     air_shipping = next((s for s in SHIPPING if s["shipping_method"].lower() == "air"), SHIPPING[0])
-    unit_weight = product["weight_kg"] if product["weight_kg"] is not None else ASSUMED_WEIGHT_KG
+    unit_weight, weight_is_estimated = unit_weight_for(product)
     total_weight = unit_weight * req.quantity
     shipping_cost_pkr = usd_to_pkr(air_shipping["estimated_cost"] * total_weight)
     if req.product_id in DUTY_RATES:

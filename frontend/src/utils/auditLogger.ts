@@ -1,7 +1,21 @@
 import { AuditLogEntry } from '../types';
 
 const AUDIT_STORAGE_KEY = 'pamirai_audit_trail_v1';
-const CURRENT_USER_EMAIL = 'kafa.rwp@gmail.com';
+const USER_KEY = 'pamirai_user_v1';
+
+/** Email of the signed-in user (saved by the login/signup screen); used to stamp audit entries. */
+function currentUserEmail(): string {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    if (raw) {
+      const u = JSON.parse(raw) as { email?: string };
+      if (u.email) return u.email;
+    }
+  } catch {
+    /* ignore */
+  }
+  return 'anonymous';
+}
 
 export function getAuditLogs(): AuditLogEntry[] {
   try {
@@ -41,7 +55,7 @@ export function logFieldTransition(
     id: logId,
     record_id: recordId,
     timestamp,
-    user_id: CURRENT_USER_EMAIL,
+    user_id: currentUserEmail(),
     field_name: fieldName,
     previous_value: previousValue,
     new_value: newValue,
@@ -91,7 +105,7 @@ function generateInitialAuditSeed(): AuditLogEntry[] {
       id: 'LOG-SYS-001',
       record_id: 'REC-P001',
       timestamp: new Date(baseTime).toISOString(),
-      user_id: CURRENT_USER_EMAIL,
+      user_id: currentUserEmail(),
       field_name: 'capital',
       previous_value: '0',
       new_value: '25000',
@@ -102,7 +116,7 @@ function generateInitialAuditSeed(): AuditLogEntry[] {
       id: 'LOG-SYS-002',
       record_id: 'REC-P001',
       timestamp: new Date(baseTime + 120000).toISOString(),
-      user_id: CURRENT_USER_EMAIL,
+      user_id: currentUserEmail(),
       field_name: 'total_landed_cost_pkr',
       previous_value: '0',
       new_value: '25954.90',
@@ -113,7 +127,7 @@ function generateInitialAuditSeed(): AuditLogEntry[] {
       id: 'LOG-SYS-003',
       record_id: 'REC-P001',
       timestamp: new Date(baseTime + 180000).toISOString(),
-      user_id: CURRENT_USER_EMAIL,
+      user_id: currentUserEmail(),
       field_name: 'viability_score',
       previous_value: '50',
       new_value: '80',
