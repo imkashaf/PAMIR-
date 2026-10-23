@@ -1,61 +1,64 @@
+
 """
-Qwen3 reasoning service for Pamir AI.
+Gemini reasoning service for Pamir AI.
 
-This module is the ONLY place in the project that reads the Qwen API key or talks
-to the Qwen API. main.py never sees the key directly and never builds the HTTP
-request itself - it only calls explain_viability() and handles QwenServiceError.
-
-Qwen is used ONLY to explain structured data that the deterministic business-
-viability engine in main.py has already computed. It never invents or overrides
-a numerical value - Python remains authoritative for every number. This module
-enforces that boundary through the system prompt and by validating the response
-shape before returning it.
+Gemini only explains structured data already calculated by main.py.
+Python remains authoritative for all numerical values.
 """
 
 import os
 import json
 import httpx
+from dotenv import load_dotenv
 
-QWEN_API_KEY = os.getenv("DASHSCOPE_API_KEY")
-QWEN_MODEL = os.getenv("QWEN_MODEL") or "qwen-plus"
-QWEN_BASE_URL = os.getenv("QWEN_BASE_URL") or "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-QWEN_TIMEOUT_SECONDS = 12
+# Load backend/.env even if the app is started from another folder.
+load_dotenv()
 
-REQUIRED_RESPONSE_KEYS = {"reasoning", "strengths", "risks", "warnings", "recommendation", "confidence"}
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+GEMINI_TIMEOUT_SECONDS = 20
 
-SYSTEM_PROMPT = """You are a sourcing/import-viability explainer for Pamir AI, a tool that helps first-time Pakistani entrepreneurs evaluate import opportunities from China.
+REQUIRED_RESPONSE_KEYS = {
+    "reasoning",
+    "strengths",
+    "risks",
+    "warnings",
+    "recommendation",
+    "confidence",
+}
 
-You will be given a JSON object of structured, already-computed data about ONE product opportunity. This data was calculated by deterministic Python code, not by you. You must NOT change, recompute, or contradict any numerical value in it.
+SYSTEM_PROMPT = """
+You are a sourcing/import-viability explainer for Pamir AI,
+a tool that helps first-time Pakistani entrepreneurs evaluate
+import opportunities from China.
 
-STRICT RULES:
-- Use ONLY the structured data provided. Do not invent market demand, sales volume, competitors, profit guarantees, supplier verification status, or customs/legal requirements that are not present in the data.
-- Do not change any numerical value (viability_score, prices, duty rates, etc.) supplied to you.
-- If a field's value is null, missing, or explicitly marked as unavailable/incomplete in the data, say so plainly ("Data unavailable - verify before making a business decision.") rather than guessing or filling it in.
-- Clearly distinguish data marked "verified" from data marked "curated," "estimated," or "incomplete" - do not present estimated or curated data with the same confidence as verified data.
-- Do not give legal, tax, or customs advice as authoritative fact. If the data includes guidance-level or unavailable regulatory information, describe it as something the user must verify with the relevant authority, not as settled fact.
-- Do not fabricate supplier trust or verification status beyond what the data states.
+You will receive JSON containing structured data already calculated
+by deterministic Python code. You must not change or recalculate
+any numerical value.
 
-Respond ONLY with a single JSON object matching exactly this schema, and nothing else (no markdown fences, no preamble, no extra keys):
+Rules:
+- Use only the supplied data. Never invent market demand, sales,
+  competitors, profit guarantees, supplier verification, or regulations.
+- Do not change numerical values.
+- If data is missing or unavailable, say it must be verified.
+- Clearly distinguish verified, curated, estimated, and incomplete data.
+- Do not present legal, tax, or customs guidance as authoritative fact.
+- Do not invent supplier trust or verification status.
+
+Return only a JSON object with exactly these keys:
 {
-  "reasoning": "2-4 sentence plain-language explanation of the opportunity, grounded only in the supplied data",
-  "strengths": ["short strength 1", "short strength 2"],
-  "risks": ["short risk 1", "short risk 2"],
-  "warnings": ["short warning 1"],
-  "recommendation": "one or two sentence recommendation",
+  "reasoning": "2-4 sentence explanation",
+  "strengths": ["strength 1", "strength 2"],
+  "risks": ["risk 1", "risk 2"],
+  "warnings": ["warning 1"],
+  "recommendation": "one or two sentences",
   "confidence": "low, medium, or high"
 }
 """
 
 
 class QwenServiceError(Exception):
-    """
-    Raised for any Qwen-related failure. `category` is one of:
-      - "not_configured": no API key is set
-      - "unavailable": the service could not be reached (network/timeout)
-      - "error": the service was reached but returned something unusable
-    Callers must catch this and fall back to deterministic-only output - this
-    module never returns a partial or fabricated result on failure.
-    """
+    """Kept for compatibility with existing main.py imports."""
 
     def __init__(self, category: str, detail: str = ""):
         self.category = category
@@ -64,63 +67,107 @@ class QwenServiceError(Exception):
 
 
 def is_configured() -> bool:
-    return bool(QWEN_API_KEY)
+    return bool(GEMINI_API_KEY)
 
 
 def explain_viability(structured_data: dict) -> dict:
-    """
-    Calls Qwen3 to explain a structured viability payload that main.py's
-    deterministic engine has already computed. Returns a dict matching
-    REQUIRED_RESPONSE_KEYS, or raises QwenServiceError.
-    """
-    if not QWEN_API_KEY:
-        raise QwenServiceError("not_configured", "DASHSCOPE_API_KEY is not set.")
+    """Generate a structured explanation using Gemini."""
+
+    if not GEMINI_API_KEY:
+        raise QwenServiceError(
+            "not_configured",
+            "GEMINI_API_KEY is not set."
+        )
+
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        f"models/{GEMINI_MODEL}:generateContent"
+    )
 
     payload = {
-        "model": QWEN_MODEL,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(structured_data)}
+        "systemInstruction": {
+            "parts": [{"text": SYSTEM_PROMPT}]
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": json.dumps(
+                            structured_data,
+                            ensure_ascii=False
+                        )
+                    }
+                ],
+            }
         ],
-        "response_format": {"type": "json_object"},
-        "temperature": 0.3
-    }
-    headers = {
-        "Authorization": f"Bearer {QWEN_API_KEY}",
-        "Content-Type": "application/json"
+        "generationConfig": {
+            "temperature": 0.3,
+            "responseMimeType": "application/json",
+        },
     }
 
     try:
         response = httpx.post(
-            f"{QWEN_BASE_URL}/chat/completions",
+            url,
+            params={"key": GEMINI_API_KEY},
             json=payload,
-            headers=headers,
-            timeout=QWEN_TIMEOUT_SECONDS
+            timeout=GEMINI_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
+
     except httpx.TimeoutException as e:
-        raise QwenServiceError("unavailable", "Request to Qwen timed out.") from e
+        raise QwenServiceError(
+            "unavailable", "Request to Gemini timed out."
+        ) from e
+
     except httpx.HTTPStatusError as e:
-        raise QwenServiceError("error", f"Qwen returned HTTP {e.response.status_code}.") from e
-    except httpx.RequestError as e:
-        # Covers DNS failure, connection refused, network unreachable, etc.
-        raise QwenServiceError("unavailable", f"Could not reach Qwen: {type(e).__name__}.") from e
+        # Do not expose the API key or full request URL in error messages.
+        raise QwenServiceError(
+            "error", f"Gemini returned HTTP {e.response.status_code}."
+        ) from e
+
 
     try:
         body = response.json()
-        content = body["choices"][0]["message"]["content"]
+        content = body["candidates"][0]["content"]["parts"][0]["text"]
         parsed = json.loads(content)
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as e:
-        raise QwenServiceError("error", "Qwen response was not valid JSON in the expected shape.") from e
 
-    if not isinstance(parsed, dict) or not REQUIRED_RESPONSE_KEYS.issubset(parsed.keys()):
-        raise QwenServiceError("error", "Qwen response was missing required fields.")
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as e:
+        raise QwenServiceError(
+            "error", "Gemini response was not valid JSON."
+        ) from e
+
+    if not isinstance(parsed, dict):
+        raise QwenServiceError(
+            "error", "Gemini response was not a JSON object."
+        )
+
+    if not REQUIRED_RESPONSE_KEYS.issubset(parsed.keys()):
+        raise QwenServiceError(
+            "error", "Gemini response was missing required fields."
+        )
+
+    if not isinstance(parsed["reasoning"], str):
+        raise QwenServiceError("error", "Invalid reasoning field.")
+
+    if not isinstance(parsed["recommendation"], str):
+        raise QwenServiceError("error", "Invalid recommendation field.")
+
+    for key in ("strengths", "risks", "warnings"):
+        if not isinstance(parsed[key], list) or not all(
+            isinstance(item, str) for item in parsed[key]
+        ):
+            raise QwenServiceError("error", f"Invalid {key} field.")
+
+    if parsed["confidence"] not in ("low", "medium", "high"):
+        parsed["confidence"] = "low"
 
     return {
-        "reasoning": parsed.get("reasoning", ""),
-        "strengths": parsed.get("strengths") or [],
-        "risks": parsed.get("risks") or [],
-        "warnings": parsed.get("warnings") or [],
-        "recommendation": parsed.get("recommendation", ""),
-        "confidence": parsed.get("confidence", "unknown")
+        "reasoning": parsed["reasoning"],
+        "strengths": parsed["strengths"],
+        "risks": parsed["risks"],
+        "warnings": parsed["warnings"],
+        "recommendation": parsed["recommendation"],
+        "confidence": parsed["confidence"],
     }

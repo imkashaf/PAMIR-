@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from dotenv import load_dotenv
 import os
+import time
+import httpx
 
 
 app = FastAPI()
@@ -107,8 +109,50 @@ USD_TO_PKR = next(c["rate"] for c in CURRENCY if c["data_status"] == "verified")
 USD_TO_PKR_STATUS = "verified"
 
 
+# ---- Live exchange rates (open.er-api.com), 24 ghante cache ----
+_LIVE = {}
+LIVE_TTL = 24 * 60 * 60
+
+
+def get_live_rates():
+    now = time.time()
+    if _LIVE and now - _LIVE["fetched_at"] < LIVE_TTL:
+        _LIVE["stale"] = False
+        return _LIVE
+    try:
+        r = httpx.get("https://open.er-api.com/v6/latest/USD", timeout=6)
+        r.raise_for_status()
+        d = r.json()
+        _LIVE.update({
+            "usd_pkr": d["rates"]["PKR"],
+            "usd_cny": d["rates"]["CNY"],
+            "as_of": d.get("time_last_update_utc"),
+            "fetched_at": now,
+            "stale": False,
+        })
+        return _LIVE
+    except Exception as e:
+        print("LIVE RATE ERROR:", repr(e))
+        if _LIVE:
+            _LIVE["stale"] = True
+            return _LIVE
+        return None
+
+
+def current_rates():
+    live = get_live_rates()
+    if live:
+        status = "stale_reference" if live["stale"] else "live_reference"
+        return {"usd_pkr": live["usd_pkr"], "usd_pkr_status": status,
+                "usd_cny": live["usd_cny"], "usd_cny_status": status,
+                "as_of": live["as_of"]}
+    return {"usd_pkr": USD_TO_PKR, "usd_pkr_status": USD_TO_PKR_STATUS,
+            "usd_cny": USD_TO_CNY, "usd_cny_status": USD_TO_CNY_STATUS,
+            "as_of": _interbank_entry["source_date"]}
+
+
 def usd_to_pkr(usd_amount: float) -> float:
-    return round(usd_amount * USD_TO_PKR, 2)
+    return round(usd_amount * current_rates()["usd_pkr"], 2)
 
 
 # CNY rate ab currency.json se aata hai (pehle hardcoded tha, ab source/date/status ke saath)
@@ -122,23 +166,25 @@ def usd_to_cny(usd_amount: float) -> float:
 
 # Product ID -> Duty rate (customs.json descriptions se manually banaya gaya mapping)
 
-DUTY_RATES = {
-    "P001": 20, "P019": 20, "P020": 20, "P025": 20,
-    "P005": 20, "P017": 3, "P026": 11,
-    "P002": 11, "P009": 11, "P023": 20, "P024": 3,
-    "P003": 20,
-    "P006": 16, "P010": 16, "P007": 11, "P015": 11, "P021": 3,
-    "P004": 20,   # confirmed customs.json (9405.1190)
-    "P008": 20,   # confirmed customs.json (8414.5190)
-    "P018": 20,   # confirmed customs.json (8536.6990)
-    "P011": 20,   # confirmed customs.json (3926.9099)
-    "P012": 20,   # confirmed customs.json (3926.9099)
-    "P022": 20,   # confirmed customs.json (3926.9099)
-    "P013": 20,   # confirmed customs.json (9620.0000)
-    "P014": 20,   # confirmed customs.json (9620.0000)
-    "P016": 20,   # confirmed customs.json (7007.1900/3919.9090)
-}
-DEFAULT_DUTY_RATE = 20  # ab sirf tab use hoga jab koi product dictionary mein bilkul na ho
+# Product ID -> customs.json se duty rates
+DUTY_RATES = {}
+CUSTOMS_BY_PRODUCT = {}
+
+for entry in CUSTOMS:
+    product_ids = re.findall(
+        r"\b[AP]\d{3}\b",
+        entry.get("description", "")
+    )
+
+    for pid in product_ids:
+        CUSTOMS_BY_PRODUCT[pid] = entry
+
+        if entry.get("duty_rate") is not None:
+            DUTY_RATES[pid] = entry["duty_rate"]
+
+DEFAULT_DUTY_RATE = 20
+
+ASSUMED_WEIGHT_KG = 0.15
 
 # Product ID -> full customs.json entry (pct_code, duty_rate, source, etc.), derived
 # directly from the dataset by parsing the "covers PXXX" mentions in each description.
@@ -205,6 +251,19 @@ _open_market_entry = next((c for c in CURRENCY if c["target_currency"] == "PKR" 
 
 @app.get("/api/exchange-rates")
 def get_exchange_rates():
+    live = get_live_rates()
+    live_block = None
+    if live:
+        live_block = {
+            "base": "USD",
+            "usd_pkr": live["usd_pkr"],
+            "usd_cny": live["usd_cny"],
+            "cny_pkr": round(live["usd_pkr"] / live["usd_cny"], 4),
+            "as_of": live["as_of"],
+            "status": "stale_reference" if live["stale"] else "live_reference",
+            "source": "ExchangeRate-API (open.er-api.com)",
+            "note": "Reference rate, not a bank or payment transaction rate.",
+        }
     return {
         "success": True,
         "data": {
@@ -226,10 +285,10 @@ def get_exchange_rates():
                 "source": _cny_entry["source"],
                 "source_date": _cny_entry["source_date"],
             },
-            "note": "These are dataset snapshots, refreshed when Pamir AI's data is updated - not a live market feed.",
+            "live_market": live_block,
+            "note": "interbank/open-market/CNY entries are dataset snapshots. live_market is a reference rate and can be stale if the provider is unreachable.",
         },
     }
-
 
 # ---------------- API 1: Opportunity Discovery ----------------
 class OpportunityRequest(BaseModel):
@@ -331,15 +390,16 @@ def get_landed_cost(req: LandedCostRequest, user_email: str = Depends(verify_tok
         duty_rate = DEFAULT_DUTY_RATE
         duty_rate_source = "default_fallback"
 
-        # User ke chune hue currency mein convert karo
+    # Live rate (agar API chal rahi ho), warna dataset snapshot par fallback
+    rates = current_rates()
     currency = req.target_currency.upper()
     if currency == "CNY":
-        conversion_rate = USD_TO_CNY
-        exchange_rate_status = USD_TO_CNY_STATUS
+        conversion_rate = rates["usd_cny"]
+        exchange_rate_status = rates["usd_cny_status"]
     else:
         currency = "PKR"
-        conversion_rate = USD_TO_PKR
-        exchange_rate_status = USD_TO_PKR_STATUS
+        conversion_rate = rates["usd_pkr"]
+        exchange_rate_status = rates["usd_pkr_status"]
 
     product_cost_final = round(product["supplier_price"] * req.quantity * conversion_rate, 2)
     shipping_cost_final = round(shipping_cost_usd * conversion_rate, 2)
@@ -358,6 +418,7 @@ def get_landed_cost(req: LandedCostRequest, user_email: str = Depends(verify_tok
             "currency_used": currency,
             "exchange_rate": conversion_rate,
             "exchange_rate_status": exchange_rate_status,
+            "exchange_rate_as_of": rates["as_of"],
             "product_cost": product_cost_final,
             "shipping_cost": shipping_cost_final,
             "duty_rate_percent": duty_rate,
@@ -440,7 +501,8 @@ def get_business_viability(req: ViabilityRequest, user_email: str = Depends(veri
             ai_explanation = explain_viability(structured_data_for_qwen)
             qwen_status = "available"
         except QwenServiceError as e:
-            qwen_status = e.category  # "unavailable" or "error" - never "available" on failure
+            print("GEMINI SERVICE ERROR:", e.category, e.detail)
+            qwen_status = e.category
             ai_explanation = None
 
     return {
